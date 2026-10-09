@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { MONTHS_ES, LIGHT, RESULT_LABEL, activeSeries, chartSVG, kpis, lastMonth } from '@/lib/report';
+import { MONTHS_ES, RESULT_LABEL, activeSeries, chartSVG, kpis, lastMonth } from '@/lib/report';
+import { chartPng, exportExcel, saveBlob } from '@/lib/export';
 
 const EMPTY_FORM = { chg: '', project: '', team: 'CX', date: '', type: 'planned', result: 'successful', notes: '' };
 const today = () => {
@@ -29,6 +30,7 @@ export default function Page() {
   const [msg, setMsg] = useState({ text: '', err: false });
   const [saving, setSaving] = useState(false);
   const [confirmDel, setConfirmDel] = useState(null);
+  const [exporting, setExporting] = useState(false);
 
   async function load() {
     try {
@@ -114,24 +116,25 @@ export default function Page() {
     }
   }
 
-  function downloadPng() {
-    const url = URL.createObjectURL(new Blob([chartSVG(rows, year, LIGHT)], { type: 'image/svg+xml' }));
-    const img = new Image();
-    img.onload = () => {
-      const c = document.createElement('canvas');
-      c.width = img.width * 2;
-      c.height = img.height * 2;
-      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-      URL.revokeObjectURL(url);
-      c.toBlob((b) => {
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(b);
-        a.download = `changes-per-month-${year}${team ? '-' + team : ''}.png`;
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-      }, 'image/png');
-    };
-    img.src = url;
+  async function downloadPng() {
+    try {
+      const { blob } = await chartPng(rows, year);
+      saveBlob(blob, `changes-per-month-${year}${team ? '-' + team : ''}.png`);
+    } catch (err) {
+      setMsg({ text: err.message, err: true });
+    }
+  }
+
+  async function downloadExcel() {
+    setExporting(true);
+    try {
+      await exportExcel({ rows, list, year, team, monthLabel: month === '' ? '' : MONTHS_ES[Number(month)] });
+    } catch (err) {
+      console.error(err);
+      setMsg({ text: 'No se pudo generar el Excel.', err: true });
+    } finally {
+      setExporting(false);
+    }
   }
 
   return (
@@ -151,7 +154,10 @@ export default function Page() {
             <option value="">Todos</option>
             {teams.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
-          <button className="ghost" type="button" onClick={downloadPng}>Descargar gráfico (PNG)</button>
+          <button className="ghost" type="button" onClick={downloadPng}>Gráfico (PNG)</button>
+          <button type="button" onClick={downloadExcel} disabled={exporting}>
+            {exporting ? 'Generando…' : 'Exportar Excel'}
+          </button>
         </div>
       </header>
 

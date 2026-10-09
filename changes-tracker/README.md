@@ -2,7 +2,11 @@
 
 App para registrar CHGs por proyecto y generar el gráfico mensual "Implemented changes per month" con sus totales
 (Planned / Emergency / Successful / Not successful / Rollback). Cada mes con cargas agrega su barra automáticamente.
-El botón **Descargar gráfico (PNG)** baja la imagen con fondo blanco para pegarla en el reporte.
+Exportaciones (respetan los filtros de año, equipo y mes):
+
+- **Gráfico (PNG):** la imagen con fondo blanco para pegarla en el reporte.
+- **Exportar Excel:** un `.xlsx` con la hoja *Reporte* (totales, tabla mensual por serie e imagen del gráfico)
+  y la hoja *Cambios* (el listado con autofiltro).
 
 Stack: Next.js 16 (App Router) + API routes. Los datos se guardan:
 
@@ -20,6 +24,18 @@ npm run dev
 ```
 
 Abrí http://localhost:3000.
+
+### Datos de demo
+
+Con la app corriendo:
+
+```bash
+npm run seed:demo      # carga ~140 CHGs de ejemplo (2026, equipos CX, Data e Infra)
+npm run seed:clear     # borra solo los registros de demo
+```
+
+Los registros de demo llevan `[demo]` en las notas; los cargados a mano no se tocan.
+Para cargarlos en Vercel: `node scripts/seed-demo.mjs https://tu-app.vercel.app`.
 
 Para usar Postgres también en local, creá un archivo `.env.local` con `DATABASE_URL=...` (ver `.env.example`).
 

@@ -64,7 +64,9 @@ export function chartSVG(rows, year, pal = null) {
   const nm = lastMonth(rows, year) + 1;
   const counts = MONTHS.slice(0, nm).map((_, i) =>
     series.map((s) => rows.filter((r) => monthOf(r) === i && seriesKey(r) === s.key).length));
-  const max = Math.max(1, ...counts.flat());
+  // Stacked bars: the scale follows each month's total.
+  const totals = counts.map((vals) => vals.reduce((a, b) => a + b, 0));
+  const max = Math.max(1, ...totals);
   const step = max <= 5 ? 1 : max <= 14 ? 2 : max <= 30 ? 5 : Math.ceil(max / 6 / 5) * 5;
   const rounded = Math.ceil(max / step) * step;
   const top = rounded === max ? rounded + step : rounded;
@@ -79,15 +81,20 @@ export function chartSVG(rows, year, pal = null) {
     s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="${col('--grid')}" stroke-width="1"/>`;
     s += `<text x="${L - 8}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="${col('--muted')}">${v}</text>`;
   }
-  const gw = Math.min(cw * 0.62, 26 * series.length + 8), bw = gw / series.length;
+  const bw = Math.min(cw * 0.55, 44);
   counts.forEach((vals, i) => {
-    const x0 = L + i * cw + (cw - gw) / 2;
+    const x = L + i * cw + (cw - bw) / 2;
+    let acc = 0;
     vals.forEach((v, j) => {
       if (!v) return;
-      const x = x0 + j * bw + 1, h = (v / top) * ph;
-      s += `<rect x="${x}" y="${y(v)}" width="${bw - 2}" height="${h}" fill="${col(series[j].c)}"><title>${MONTHS[i]} · ${esc(series[j].label)}: ${v}</title></rect>`;
-      s += `<text x="${x + (bw - 2) / 2}" y="${y(v) - 4}" text-anchor="middle" font-size="10.5" fill="${col('--fg')}">${v}</text>`;
+      const yTop = y(acc + v), h = (v / top) * ph;
+      // 1px gap between segments so adjacent series stay distinguishable.
+      s += `<rect x="${x}" y="${yTop}" width="${bw}" height="${Math.max(h - 1, 1)}" fill="${col(series[j].c)}"><title>${MONTHS[i]} · ${esc(series[j].label)}: ${v}</title></rect>`;
+      acc += v;
     });
+    if (totals[i]) {
+      s += `<text x="${x + bw / 2}" y="${y(totals[i]) - 5}" text-anchor="middle" font-size="11" font-weight="600" fill="${col('--fg')}">${totals[i]}</text>`;
+    }
     s += `<text x="${L + i * cw + cw / 2}" y="${H - B + 18}" text-anchor="middle" font-size="12" fill="${col('--fg')}">${MONTHS[i]}</text>`;
     if (i > 0) s += `<line x1="${L + i * cw}" x2="${L + i * cw}" y1="${H - B}" y2="${H - B + 26}" stroke="${col('--line')}"/>`;
   });
