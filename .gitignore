@@ -1,0 +1,13 @@
+# Reportes internos (pueden contener información sensible)
+*.pptx
+*.rtf
+*.docx
+*.xlsx
+
+# Configuración local de Claude Code
+.claude/
+
+# Variables de entorno
+.env
+.env.*
+!.env.example
